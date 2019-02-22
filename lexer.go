@@ -53,11 +53,10 @@ var operators = map[string]lexer.TokenType {
 	"<>":LESSGREAT,
 }
 
-func resolve(current string) lexer.TokenType {
-	lastChar := current[len(current) - 1:]
+func resolve(current string, delimChar string) lexer.TokenType {
 	if val, ok := operators[current]; ok {
 		return val
-	} else if _, err := strconv.Atoi(current[:len(current) - 1]); err == nil && (lastChar == ">" || lastChar == "<") {
+	} else if _, err := strconv.Atoi(current); err == nil && delimChar == ">" || delimChar == "<"{
 		return IO_NUMBER
 	} else {
 		return TOKEN
@@ -70,7 +69,7 @@ func lexDelimitation(l *lexer.L) lexer.StateFunc {
 		r := l.Next() //Rule 8 & 10 2.3
 		if r == -1 { //Rule 1 2.3
 			if len(l.Current()) > 0 {
-				l.Emit(resolve(l.Current()))
+				l.Emit(resolve(l.Current(), "EOF"))
 			}
 			l.Emit(ErrorToken)
 		} else if matches, _ := regexp.MatchString("[\\\"']", string(r)); matches { //Rule 4 2.3
@@ -87,16 +86,18 @@ func lexDelimitation(l *lexer.L) lexer.StateFunc {
 				return lexLiteralString
 			}
 		} else if matches, _ := regexp.MatchString("[&();|<>]", string(r)); matches { //Rule 6 2.3
+			current := l.Current()
+			delimChar := current[len(current) - 1:]
 			l.Backup()
 			if current := l.Current(); len(current) > 0 {
-				l.Emit(resolve(current))
+				l.Emit(resolve(current, delimChar))
 			}
 			l.Next()
 			l.StateRecord.Push(lexDelimitation)
 			return lexOperator
 		} else if r == ' ' { //Rule 7 2.3
 			l.Backup()
-			l.Emit(resolve(l.Current()))
+			l.Emit(resolve(l.Current(), " "))
 			l.Next()
 			l.IgnoreCharacter()
 		} else if r == '#' { //Rule 9 2.3
