@@ -58,10 +58,10 @@ func execInput(input string) error {
 		if tok.Type == ErrorToken {
 			break
 		} else {
-			//fmt.Print(tok.Type)
-			//fmt.Print(": ")
-			//fmt.Print(tok.Value)
-			//fmt.Println()
+			fmt.Print(tok.Type)
+			fmt.Print(": ")
+			fmt.Print(tok.Value)
+			fmt.Println()
 		}
 	}
 
