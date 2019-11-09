@@ -7,9 +7,28 @@ import (
 )
 
 const (
-	ErrorToken lexer.TokenType = iota
-	IO_NUMBER
+	IO_NUMBER lexer.TokenType = iota
 	TOKEN
+	WORD
+	ASSIGNMENT_WORD
+	NAME
+	// Reserved Words
+	IF
+	THEN
+	ELSE
+	ELIF
+	FI
+	DO
+	DONE
+	CASE
+	ESAC
+	WHILE
+	UNTIL
+	FOR
+	LBRACE
+	RBRACE
+	BANG
+	IN
 	// Control Operators
 	AND
 	AND_IF
@@ -71,7 +90,7 @@ func lexDelimitation(l *lexer.L) lexer.StateFunc {
 			if len(l.Current()) > 0 {
 				l.Emit(resolve(l.Current(), "EOF"))
 			}
-			l.Emit(ErrorToken)
+			l.Emit(lexer.EOFToken)
 		} else if matches, _ := regexp.MatchString("[\\\"']", string(r)); matches { //Rule 4 2.3
 			switch r {
 			case '\\':

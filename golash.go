@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"os"
 	"fmt"
 	"strings"
@@ -36,7 +37,6 @@ var variables = make(map[string]string)
 
 var pid = strconv.Itoa(os.Getpid())
 
-
 var aOpt, bOpt, cOpt, COpt, eOpt, fOpt, hOpt, iOpt, mOpt, nOpt, uOpt, vOpt, xOpt bool
 
 func execInput(input string) error {
@@ -46,24 +46,13 @@ func execInput(input string) error {
 		return nil
 	}
 
-
 	l := lexer.New(input, lexDelimitation)
 
 	l.RunLexer()
 
 	tokenChannel := l.Tokens
 
-	for {
-		tok := <-tokenChannel
-		if tok.Type == ErrorToken {
-			break
-		} else {
-			fmt.Print(tok.Type)
-			fmt.Print(": ")
-			fmt.Print(tok.Value)
-			fmt.Println()
-		}
-	}
+	Parse(tokenChannel)
 
 	commands := SplitLastSubmatch(input, operatorMatcher)
 
@@ -90,44 +79,44 @@ func execInput(input string) error {
 		}*/
 
 		switch args[0] {
-			case "":
-				return nil
-			case "cd":
-				if len(args) < 2 {
-					err := toHomeDir()
-					if err != nil {
-						return err
-					}
-				} else {
-					directory := args[1]
-					isRelative := filepath.IsAbs(directory)
-					if isRelative {
-						directory = filepath.Join(wd, directory)
-					}
-					err := os.Chdir(directory)
-					if err != nil {
-						return err
-					}
-				}
-				dirChanged = true
-				return nil
-			case "exit":
-				os.Exit(0)
-			}
-
-			args = removeEmptyArgs(args)
-
-			cmd := exec.Command(args[0], args[1:]...)
-
-			cmd.Stderr = os.Stderr
-			cmd.Stdout = os.Stdout
-
-			err := cmd.Run()
-			if err != nil {
-				return err
-			}
+		case "":
 			return nil
+		case "cd":
+			if len(args) < 2 {
+				err := toHomeDir()
+				if err != nil {
+					return err
+				}
+			} else {
+				directory := args[1]
+				isRelative := filepath.IsAbs(directory)
+				if isRelative {
+					directory = filepath.Join(wd, directory)
+				}
+				err := os.Chdir(directory)
+				if err != nil {
+					return err
+				}
+			}
+			dirChanged = true
+			return nil
+		case "exit":
+			os.Exit(0)
 		}
+
+		args = removeEmptyArgs(args)
+
+		cmd := exec.Command(args[0], args[1:]...)
+
+		cmd.Stderr = os.Stderr
+		cmd.Stdout = os.Stdout
+
+		err := cmd.Run()
+		if err != nil {
+			return err
+		}
+		return nil
+	}
 	return nil
 }
 
@@ -141,7 +130,9 @@ func main() {
 
 	variables["STR"] = "hello world!"
 
-	os.Setenv("PATH", os.Getenv("PATH") + ":" + homeDir + "/.rvm/bin")
+	if err := os.Setenv("PATH", os.Getenv("PATH")+":"+homeDir+"/.rvm/bin"); err != nil {
+		log.Fatal("Error setting PATH:", err)
+	}
 
 	prompt := filepath.Base(wd) + " ❯ "
 
@@ -171,7 +162,7 @@ func main() {
 		commandString := getopt.Arg(0)
 		for idx, arg := range getopt.Args() {
 			if idx > 0 {
-				variables[strconv.Itoa(idx - 1)] = arg
+				variables[strconv.Itoa(idx-1)] = arg
 			}
 		}
 		err := execInput(commandString)
@@ -224,7 +215,7 @@ func main() {
 		}
 	}()
 
-	r, err := readline.NewEx(&readline.Config {
+	r, err := readline.NewEx(&readline.Config{
 		Prompt:            prompt,
 		InterruptPrompt:   " ",
 		HistoryFile:       "~/.goshellhist",
