@@ -1,21 +1,21 @@
 package main
 
 import (
-	"os"
+	"bufio"
 	"fmt"
-	"strings"
-	"os/exec"
+	"github.com/ZadenRB/go-lexer"
 	"github.com/ZadenRB/readline"
-	"io"
-	"regexp"
-	"path/filepath"
-	"strconv"
 	"github.com/pborman/getopt"
 	"golang.org/x/crypto/ssh/terminal"
-	"bufio"
+	"io"
+	"os"
+	"os/exec"
 	"os/signal"
+	"path/filepath"
+	"regexp"
+	"strconv"
+	"strings"
 	"syscall"
-	"github.com/ZadenRB/go-lexer"
 )
 
 // Matches single and double quotes: (?:"[^"\\]*(\\.[^"\\]*)*"|'[^'\\]*(\\.[^'\\]*)*')
@@ -36,7 +36,6 @@ var variables = make(map[string]string)
 
 var pid = strconv.Itoa(os.Getpid())
 
-
 var aOpt, bOpt, cOpt, COpt, eOpt, fOpt, hOpt, iOpt, mOpt, nOpt, uOpt, vOpt, xOpt bool
 
 func execInput(input string) error {
@@ -47,7 +46,7 @@ func execInput(input string) error {
 	}
 
 
-	l := lexer.New(input, lexDelimitation)
+	l := lexer.New(input, lexDelimiting)
 
 	l.RunLexer()
 
@@ -58,10 +57,10 @@ func execInput(input string) error {
 		if tok.Type == ErrorToken {
 			break
 		} else {
-			//fmt.Print(tok.Type)
-			//fmt.Print(": ")
-			//fmt.Print(tok.Value)
-			//fmt.Println()
+			fmt.Print(tok.Type)
+			fmt.Print(": ")
+			fmt.Print(tok.Value)
+			fmt.Println()
 		}
 	}
 
