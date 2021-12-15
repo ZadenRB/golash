@@ -4,10 +4,11 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/ZadenRB/go-lexer"
-	"github.com/ZadenRB/readline"
 	"github.com/pborman/getopt"
+	"github.com/peterh/liner"
 	"golang.org/x/crypto/ssh/terminal"
 	"io"
+	"log"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -21,6 +22,8 @@ import (
 // Matches single and double quotes: (?:"[^"\\]*(\\.[^"\\]*)*"|'[^'\\]*(\\.[^'\\]*)*')
 
 var operatorMatcher, _ = regexp.Compile(`&{1,2}|\|&|\|{1,2}|;{1,2}|!`)
+
+var histfile = ".golash_hist"
 
 var wd, _ = os.Getwd()
 
@@ -223,16 +226,15 @@ func main() {
 		}
 	}()
 
-	r, err := readline.NewEx(&readline.Config {
-		Prompt:            prompt,
-		InterruptPrompt:   " ",
-		HistoryFile:       "~/.goshellhist",
-		HistorySearchFold: true,
-	})
-	if err != nil {
-		panic(err)
+	line := liner.NewLiner()
+	defer line.Close()
+
+	line.SetCtrlCAborts(false)
+
+	if f, err := os.Open(histfile); err == nil {
+		line.ReadHistory(f)
+		f.Close()
 	}
-	defer r.Close()
 
 	if *iFlag {
 		for {
@@ -251,27 +253,34 @@ func main() {
 					dirChanged = true
 					continue
 				} else {
-					r.SetPrompt(filepath.Base(wd) + " ❯ ")
+					prompt = filepath.Base(wd) + " ❯ "
 				}
 			}
 
-			input, err := r.Readline()
+			if input, err := line.Prompt(prompt); err == nil {
+				line.AppendHistory(input)
 
-			if err == readline.ErrInterrupt {
+				err = execInput(input)
+
+				if err != nil {
+					log.Print(err)
+				}
+			} else if err == liner.ErrPromptAborted {
 				continue
-			} else if err == io.EOF {
+			} else {
 				break
 			}
 
 			dirChanged = false
 
-			err = execInput(input)
-
-			if err != nil {
-				fmt.Fprintln(os.Stderr, err)
-			}
-
 			lastDir = wd
+		}
+
+		if f, err := os.Create(histfile); err != nil {
+			log.Print("Error writing history file: ", err)
+		} else {
+			line.WriteHistory(f)
+			f.Close()
 		}
 	}
 }
