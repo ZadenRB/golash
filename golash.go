@@ -57,7 +57,7 @@ func execInput(input string) error {
 
 	for {
 		tok := <-tokenChannel
-		if tok.Type == ErrorToken {
+		if tok.Type == lexer.EOFToken {
 			break
 		} else {
 			fmt.Print(tok.Type)

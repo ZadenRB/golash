@@ -13,8 +13,7 @@ import (
 */
 
 const (
-	ErrorToken lexer.TokenType = iota
-	IO_NUMBER
+	IO_NUMBER lexer.TokenType = iota + 1 // go-lexer has predefined -1 and 0
 	TOKEN
 	// Control Operators
 	AND
@@ -72,12 +71,13 @@ func resolve(current string) lexer.TokenType {
 // State functions
 func lexDelimiting(l *lexer.L) lexer.StateFunc {
 	for {
-		r := l.Peek() // 2.3 - Rule 8 & 10
+		r := l.Peek()
 		if r == -1 {
 			// 2.3 - Rule 1
 			if len(l.Current()) > 0 {
 				l.Emit(resolve(l.Current()))
 			}
+			l.Emit(lexer.EOFToken)
 		} else if matches, _ := regexp.MatchString("[\\\"']", string(r)); matches {
 			// 2.3 - Rule 4
 			switch r {
@@ -113,6 +113,9 @@ func lexDelimiting(l *lexer.L) lexer.StateFunc {
 				}
 				l.Next()
 			}
+		} else {
+			// 2.3 - Rule 8 & 10
+			l.Next()
 		}
 	}
 }
