@@ -1,14 +1,14 @@
 package main
 
 import (
-	"os"
-	"path/filepath"
-	"fmt"
 	"bufio"
-	"strings"
-	"strconv"
-	"regexp"
+	"fmt"
+	"os"
 	"path"
+	"path/filepath"
+	"regexp"
+	"strconv"
+	"strings"
 )
 
 var configPath = filepath.Join(homeDir, ".goshellrc")

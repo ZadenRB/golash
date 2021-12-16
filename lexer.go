@@ -18,7 +18,6 @@ var stringLiteralPattern = regexp.MustCompile("[^']")
 const (
 	IO_NUMBER lexer.TokenType = iota + 1 // go-lexer has predefined -1 and 0
 	TOKEN
-	// Control Operators
 	AND
 	AND_IF
 	OPENPAREN
@@ -28,7 +27,6 @@ const (
 	NEWLINE
 	OR
 	OR_IF
-	// Redirection Operators
 	LESS
 	GREAT
 	CLOBBER
