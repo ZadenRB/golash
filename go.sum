@@ -1,5 +1,5 @@
-github.com/ZadenRB/go-lexer v1.0.1 h1:lTVihE7PjVi/6qx4pxi8u/Ca49Cb+ygdAPSCNw6grAw=
-github.com/ZadenRB/go-lexer v1.0.1/go.mod h1:TbGgfI+9gFMVZWgxtmJdpK2Yhc98hsoj7CMXLSNDALM=
+github.com/ZadenRB/go-lexer v1.0.2 h1:9Lmz692lOdjrBnUCdcPGSA/Ds0lxDpYPQeNGvDcwvlQ=
+github.com/ZadenRB/go-lexer v1.0.2/go.mod h1:TbGgfI+9gFMVZWgxtmJdpK2Yhc98hsoj7CMXLSNDALM=
 github.com/mattn/go-runewidth v0.0.3 h1:a+kO+98RDGEfo6asOGMmpodZq4FNtnGP54yps8BzLR4=
 github.com/mattn/go-runewidth v0.0.3/go.mod h1:LwmH8dsx7+W8Uxz3IHJYH5QSwggIsqBzpuz5H//U1FU=
 github.com/pborman/getopt v1.1.0 h1:eJ3aFZroQqq0bWmraivjQNt6Dmm5M0h2JcDW38/Azb0=

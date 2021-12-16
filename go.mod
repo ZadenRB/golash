@@ -3,7 +3,7 @@ module github.com/ZadenRB/golash
 go 1.17
 
 require (
-	github.com/ZadenRB/go-lexer v1.0.1
+	github.com/ZadenRB/go-lexer v1.0.2
 	github.com/pborman/getopt v1.1.0
 	github.com/peterh/liner v1.2.1
 	golang.org/x/crypto v0.0.0-20211215153901-e495a2d5b3d3

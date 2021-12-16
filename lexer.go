@@ -13,6 +13,7 @@ import (
 */
 
 var commentPattern = regexp.MustCompile("[^\n]")
+var stringLiteralPattern = regexp.MustCompile("[^']")
 
 const (
 	IO_NUMBER lexer.TokenType = iota + 1 // go-lexer has predefined -1 and 0
@@ -60,17 +61,29 @@ var operators = map[string]lexer.TokenType{
 	"<>":  LESSGREAT,
 }
 
-func resolve(current string) lexer.TokenType {
-	lastChar := current[len(current)-1:]
-	if _, err := strconv.Atoi(current[:len(current)-1]); err == nil && (lastChar == ">" || lastChar == "<") {
+// 2.10.1 - Helper function to detect IO_NUMBERs vs regular TOKENs when an operator begins.
+func resolve(current string, delimiter rune) lexer.TokenType {
+	if _, err := strconv.Atoi(current); err == nil && (delimiter == '<' || delimiter == '>') {
 		// 2.10.1 - Rule 2
 		return IO_NUMBER
 	} else {
+		// 2.10.1 - Rule 3
 		return TOKEN
 	}
 }
 
-// State functions
+// 2.2.1 - Helper function to handle escaping.
+func eatEscape(l *lexer.L) {
+	l.Next()
+	l.IgnoreCharacter()
+	r := l.Next()
+
+	if r == '\n' {
+		l.IgnoreCharacter()
+	}
+}
+
+// Handle lexing of regular input.
 func lexDelimiting(l *lexer.L) lexer.StateFunc {
 	for {
 		current := l.Current()
@@ -79,18 +92,22 @@ func lexDelimiting(l *lexer.L) lexer.StateFunc {
 		// 2.3 - Rule 1
 		case -1:
 			if len(current) > 0 {
-				l.Emit(resolve(current))
+				l.Emit(TOKEN)
 			}
 
+			l.Next()
 			l.Emit(lexer.EOFToken)
 		// 2.3 - Rule 4
 		case '\\':
-			l.StateRecord.Push(lexDelimiting)
-			return lexEscape
+			// 2.2.1
+			eatEscape(l)
 		case '\'':
-			l.StateRecord.Push(lexDelimiting)
-			return lexLiteralString
+			// 2.2.2
+			l.Next()
+			l.TakeManyPattern(stringLiteralPattern)
+			l.Next()
 		case '"':
+			// 2.2.3
 			l.StateRecord.Push(lexDelimiting)
 			return lexString
 		// 2.3 - Rule 5
@@ -99,14 +116,14 @@ func lexDelimiting(l *lexer.L) lexer.StateFunc {
 		// 2.3 - Rule 6
 		case '&', '(', ')', ';', '|', '<', '>', '\n':
 			if len(current) > 0 {
-				l.Emit(resolve(current))
+				l.Emit(resolve(current, r))
 			}
 
 			l.StateRecord.Push(lexDelimiting)
 			return lexOperator
 		// 2.3 - Rule 7
 		case ' ':
-			l.Emit(resolve(current))
+			l.Emit(TOKEN)
 			l.Next()
 			l.IgnoreCharacter()
 		// 2.3 - Rules 8 & 9
@@ -123,63 +140,45 @@ func lexDelimiting(l *lexer.L) lexer.StateFunc {
 	}
 }
 
-// 2.3 - Rules 2 & 3
+// 2.2.3 - Handle lexing of double-quoted strings.
+func lexString(l *lexer.L) lexer.StateFunc {
+	l.Next()
+
+	for {
+		r := l.Peek()
+
+		switch r {
+		case '$':
+			// TODO: Parameter Expansion
+		case '`':
+			// TODO: Command substitution
+		case '\\':
+			next := l.PeekMany(2)
+			if next == '$' || next == '`' || next == '"' || next == '\\' || next == '\n' {
+				eatEscape(l)
+			}
+		case '"':
+			return l.StateRecord.Pop()
+		}
+
+		l.Next()
+	}
+}
+
+// 2.3 - Rules 2 & 3 - Handle lexing of operator tokens.
 func lexOperator(l *lexer.L) lexer.StateFunc {
+	l.Next()
+
 	for {
 		current := l.Current()
 		possibleOp := current + string(l.Peek())
 
 		if _, ok := operators[possibleOp]; !ok {
+			// 2.10.1 - Rule 1
 			l.Emit(operators[current])
 			return l.StateRecord.Pop()
 		}
-	}
-}
 
-// 2.2.1
-func lexEscape(l *lexer.L) lexer.StateFunc {
-	l.Next()
-	l.IgnoreCharacter()
-	r := l.Peek()
-
-	if r == '\n' {
 		l.Next()
-		l.IgnoreCharacter()
-	}
-
-	return l.StateRecord.Pop()
-}
-
-// 2.2.2
-func lexLiteralString(l *lexer.L) lexer.StateFunc {
-	for {
-		r := l.Next()
-
-		if r == '\'' {
-			return l.StateRecord.Pop()
-		}
-	}
-}
-
-// 2.2.3
-func lexString(l *lexer.L) lexer.StateFunc {
-	for {
-		r := l.Next()
-
-		switch r {
-		case '\\':
-			next := l.Peek()
-			if matches, _ := regexp.MatchString("[$`\"\\\\n]", string(next)); matches {
-				l.Backup()
-				l.StateRecord.Push(lexString)
-				return lexEscape
-			}
-		case '`':
-			// TODO: Command substitution
-		case '$':
-			// TODO: Parameter Expansion
-		case '"':
-			return l.StateRecord.Pop()
-		}
 	}
 }
