@@ -12,6 +12,8 @@ import (
 	where x.y.z is the section, and n is the number of a rule within that section.
 */
 
+var commentPattern = regexp.MustCompile("[^\n]")
+
 const (
 	IO_NUMBER lexer.TokenType = iota + 1 // go-lexer has predefined -1 and 0
 	TOKEN
@@ -71,50 +73,51 @@ func resolve(current string) lexer.TokenType {
 // State functions
 func lexDelimiting(l *lexer.L) lexer.StateFunc {
 	for {
+		current := l.Current()
 		r := l.Peek()
-		if r == -1 {
-			// 2.3 - Rule 1
-			if len(l.Current()) > 0 {
-				l.Emit(resolve(l.Current()))
-			}
-			l.Emit(lexer.EOFToken)
-		} else if matches, _ := regexp.MatchString("[\\\"']", string(r)); matches {
-			// 2.3 - Rule 4
-			switch r {
-			case '\\':
-				l.StateRecord.Push(lexDelimiting)
-				return lexEscape
-			case '"':
-				l.StateRecord.Push(lexDelimiting)
-				return lexString
-			case '\'':
-				l.StateRecord.Push(lexDelimiting)
-				return lexLiteralString
-			}
-		} else if matches, _ := regexp.MatchString("[&();|<>\n]", string(r)); matches {
-			// 2.3 - Rule 6
-			if current := l.Current(); len(current) > 0 {
+		switch r {
+		// 2.3 - Rule 1
+		case -1:
+			if len(current) > 0 {
 				l.Emit(resolve(current))
 			}
+
+			l.Emit(lexer.EOFToken)
+		// 2.3 - Rule 4
+		case '\\':
+			l.StateRecord.Push(lexDelimiting)
+			return lexEscape
+		case '\'':
+			l.StateRecord.Push(lexDelimiting)
+			return lexLiteralString
+		case '"':
+			l.StateRecord.Push(lexDelimiting)
+			return lexString
+		// 2.3 - Rule 5
+		case '$', '`':
+			break
+		// 2.3 - Rule 6
+		case '&', '(', ')', ';', '|', '<', '>', '\n':
+			if len(current) > 0 {
+				l.Emit(resolve(current))
+			}
+
 			l.StateRecord.Push(lexDelimiting)
 			return lexOperator
-		} else if r == ' ' {
-			// 2.3 - Rule 7
-			l.Emit(resolve(l.Current()))
+		// 2.3 - Rule 7
+		case ' ':
+			l.Emit(resolve(current))
 			l.Next()
 			l.IgnoreCharacter()
-		} else if r == '#' {
-			// 2.3 - Rule 9
-			for {
-				r = l.Peek()
-				if r == '\n' {
-					l.Ignore()
-					break
-				}
+		// 2.3 - Rules 8 & 9
+		case '#':
+			if len(current) > 0 {
 				l.Next()
+			} else {
+				l.TakeManyPattern(commentPattern)
 			}
-		} else {
-			// 2.3 - Rule 8 & 10
+		// 2.3 - Rule 10
+		default:
 			l.Next()
 		}
 	}
@@ -130,8 +133,6 @@ func lexOperator(l *lexer.L) lexer.StateFunc {
 			l.Emit(operators[current])
 			return l.StateRecord.Pop()
 		}
-
-		l.Next()
 	}
 }
 
